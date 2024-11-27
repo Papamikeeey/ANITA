@@ -1,11 +1,17 @@
 mod json_handler;
+mod pdf_handler;
+mod docx_handler;
+mod html_handler;
+mod url_handler;
 
 use std::env;
 use serde:: Deserialize;
 use std::error::Error;
-use std::fs::File;
 use std::process;
-use csv;
+use std::path::Path;
+use std::fs::File;
+
+
 
 
 #[derive(Debug, Deserialize)]
@@ -18,32 +24,31 @@ struct Record {
 
 
 
-fn main() {
-
-    println!("Current directory: {:?}", env::current_dir().unwrap());
-
-
+fn main() -> Result<(), Box<dyn Error>> {
+    println!("Current directory: {:?}", env::current_dir()?);
+    
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         eprintln!("Usage: {} <file_path>", args[0]);
-        process::exit(1);
+        process::exit(1); 
     }
-    let file_path = &args[1];
-    let extension = file_path.split('.').last().unwrap_or("");
+    let file_path = Path::new(&args[1]);
+    let extension = file_path.extension().and_then(std::ffi::OsStr::to_str).unwrap_or("");
 
     match extension {
         "csv" => {
-            if let Err(err) = read_and_print_csv(file_path) {
-                eprintln!("Error generatig example asked: {err}, ");
-                process::exit(1);
-            }
+            read_and_print_csv(file_path.to_str().unwrap())?;
         },
-
         "json" => {
-            if let Err(err) = json_handler::process_json(file_path) {
-                println!("Error generating example asked for: {err}, ");
-                process::exit(1);
-            }
+            json_handler::process_json(file_path.to_str().unwrap())?
+        },
+        "pdf" => {
+            let text = pdf_handler::extract_text_from_pdf(file_path)?;
+            println!("Extracted text from PDF: {}", text);
+        },
+        "docx" => {
+            let text = docx_handler::parse_docx(file_path.to_str().unwrap())?;
+            println!("Extracted from DOCX: {}", text);
         },
         _ => {
             eprintln!("Unsupported file format");
@@ -51,27 +56,20 @@ fn main() {
         }
     }
 
+
+    Ok(())
 }
 
-
-
 fn read_and_print_csv(file_path: &str) -> Result<(), Box<dyn Error>> {
+    use csv::Reader;
     let file = File::open(file_path)?;
-    let mut rdr = csv::Reader::from_reader(file);
-
+    let mut rdr = Reader::from_reader(file);
 
     for result in rdr.deserialize() {
         let record: Record = result?;
         println!("{:?}", record);
     }
 
+
     Ok(())
-
-
-}
-
-#[allow(dead_code)]
-fn parse_percentage(s: &str) -> Result<f32, Box<dyn Error>> {
-    let trimmed = s.trim_end_matches('%');
-    trimmed.parse::<f32>().map_err(|e| e.into())
 }
