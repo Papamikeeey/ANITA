@@ -1,19 +1,17 @@
-use std::io::Read;
+use std::io::{Cursor, Read};
 use zip::ZipArchive;
 use quick_xml::Reader;
 use quick_xml::events::Event;
 use std::error::Error;
-use std::fs::File;
 
 
-pub fn parse_docx(file_path: &str) -> Result<String, Box<dyn Error>> {
-	// Open the ".docx" file
-	let file = File::open(file_path)?;
-	let mut archive = ZipArchive::new(file)?;
+pub fn parse_docx_bytes(data: &[u8]) -> Result<String, Box<dyn Error>> {
+	// Use a cursor to read the byte slice as a file
+	let cursor = Cursor::new(data);
+	let mut zip = ZipArchive::new(cursor)?;
 
-
-	// Locat and read the 'word/document.xml' file
-	let mut document_xml = archive.by_name("word/document.xml")?;
+	// Locate and read the 'word/document.xml' file
+	let mut document_xml = zip.by_name("word/document.xml")?;
 	let mut xml_content = String::new();
 	document_xml.read_to_string(&mut xml_content)?;
 

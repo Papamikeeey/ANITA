@@ -1,15 +1,11 @@
 use serde_json::Value;
-use std::fs;
 use std::error::Error;
 
 
 // Function to proces and display JSON data
-pub fn process_json(file_path: &str) -> Result<(), Box<dyn Error>> {
-	// Read the JSON file as a string
-	let data = fs::read_to_string(file_path)?;
-
-	// Parse the JSON string into a serde_json::value
-	let json: Value = serde_json::from_str(&data)?;
+pub fn process_json_bytes(data: &[u8]) -> Result<(), Box<dyn Error>> {
+	// Read the JSON bytes into a serde_json::Value
+	let json: Value = serde_json::from_slice(data)?;
 
 
 	// Pretty -print the JSON structure
